@@ -1,4 +1,6 @@
-' 
+' Auswählen einer/mehrerer Datenbanken mittels FileDialog
+' und setzen der AllowBypassKey-Eigenschaft auf True
+' das bedeutet, dass ein AUTOEXEC mittels Shift-Key umgangen wird
 
   Dim tmpPath As String
   Dim dB As Object, myAcc As Object
