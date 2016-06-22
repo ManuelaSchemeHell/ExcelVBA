@@ -10,11 +10,11 @@
   
   On Error Resume Next
   tmpPath = ThisWorkbook.Path & "\"
-  Set fd = Application.FileDialog(3)
+  Set fd = Application.FileDialog(3)  ' 3=msoFileDialogFilePicker
   fd.InitialFileName = tmpPath & "*.acc*"
   Set dB = CreateObject("Access.Application")
    ' Open the file dialog
-  With Application.FileDialog(1)
+  With Application.FileDialog(1)  ' 1=msoFileDialogOpen (erst ab 2013)
     .AllowMultiSelect = True
     .Show
 
