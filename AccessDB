@@ -1,0 +1,27 @@
+' 
+
+  Dim tmpPath As String
+  Dim dB As Object, myAcc As Object
+  Dim lngCount As Long, fd As Object
+  Dim vrtSelectedItem As Variant
+  Dim objShell As Object
+  
+  On Error Resume Next
+  tmpPath = ThisWorkbook.Path & "\"
+  Set fd = Application.FileDialog(3)
+  fd.InitialFileName = tmpPath & "*.acc*"
+  Set dB = CreateObject("Access.Application")
+   ' Open the file dialog
+  With Application.FileDialog(1)
+    .AllowMultiSelect = True
+    .Show
+
+    ' Display paths of each file selected
+    For lngCount = 1 To .SelectedItems.Count
+      dB.CloseCurrentDatabase
+      Set myAcc = dB.OpenCurrentDatabase(.SelectedItems(lngCount))
+      dB.Properties("AllowBypassKey").Value = True
+      Debug.Print .SelectedItems(lngCount)
+      
+    Next lngCount
+  End With
