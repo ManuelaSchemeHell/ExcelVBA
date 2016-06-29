@@ -20,9 +20,11 @@
     End With
     With .Interior
       myF = myZ & "Interior."
-      Debug.Print myF & "Color = " & .Color
-      Debug.Print myF & "Pattern = " & .Pattern
-      Debug.Print myF & "PatternColor = " & .PatternColor
+      If .Pattern <> xlPatternNone Then
+        Debug.Print myF & "Color = " & .Color
+        Debug.Print myF & "Pattern = " & .Pattern
+        Debug.Print myF & "PatternColor = " & .PatternColor
+      End If
     End With
     With .Borders
       myF = myZ & "Borders."
@@ -34,9 +36,11 @@
       For I = 1 To .Count
         myF = myZ & "Borders(" & I & ")."
         With myR.Borders(I)
-          Debug.Print myF & "Weight = " & .Weight
-          Debug.Print myF & "Color = " & .Color
-          Debug.Print myF & "LineStyle = " & .LineStyle
+          If .LineStyle <> xlLineStyleNone Then ' nur wenn vom Standard abweicht
+            Debug.Print myF & "Weight = " & .Weight
+            Debug.Print myF & "Color = " & .Color
+            Debug.Print myF & "LineStyle = " & .LineStyle
+          End If
         End With
       Next I
     End With
