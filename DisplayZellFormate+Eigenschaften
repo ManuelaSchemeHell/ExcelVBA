@@ -1,0 +1,22 @@
+ Dim myR As Range, myZ As String, myF As String
+  
+  Set myR = ActiveCell
+  myZ = """" & myR.Address & """."
+  With myR
+    Debug.Print myZ & "FormulaLocal = " & .FormulaLocal
+    With .Font
+      myF = myZ & "Font."
+      Debug.Print myF & "color = " & .Color
+      Debug.Print myF & "bold = " & .Bold
+      Debug.Print myF & "Size = " & .Size
+      Debug.Print myF & "Italic = " & .Italic
+      Debug.Print myF & "Name = " & .Name
+      Debug.Print myF & "Underline = " & .Underline
+    End With
+    With .Interior
+      myF = myZ & "Interior."
+      Debug.Print myF & "Color = " & .Color
+      Debug.Print myF & "Pattern = " & .Pattern
+      Debug.Print myF & "PatternColor = " & .PatternColor
+    End With
+  End With
