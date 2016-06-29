@@ -1,9 +1,14 @@
- Dim myR As Range, myZ As String, myF As String
+  Dim myR As Range, myZ As String, myF As String
+  Dim I As Integer
   
   Set myR = ActiveCell
   myZ = """" & myR.Address & """."
   With myR
     Debug.Print myZ & "FormulaLocal = " & .FormulaLocal
+    Debug.Print myZ & "Width = " & .Width
+    Debug.Print myZ & "Height = " & .Height
+    Debug.Print myZ & "HorizontalAlignment = " & .HorizontalAlignment
+    Debug.Print myZ & "VerticalAlignment = " & .VerticalAlignment
     With .Font
       myF = myZ & "Font."
       Debug.Print myF & "color = " & .Color
@@ -18,5 +23,21 @@
       Debug.Print myF & "Color = " & .Color
       Debug.Print myF & "Pattern = " & .Pattern
       Debug.Print myF & "PatternColor = " & .PatternColor
+    End With
+    With .Borders
+      myF = myZ & "Borders."
+      Debug.Print myF & "Count = " & .Count
+      Debug.Print myF & "Weight = " & .Weight
+      Debug.Print myF & "Color = " & .Color
+      Debug.Print myF & "LineStyle = " & .LineStyle
+      
+      For I = 1 To .Count
+        myF = myZ & "Borders(" & I & ")."
+        With myR.Borders(I)
+          Debug.Print myF & "Weight = " & .Weight
+          Debug.Print myF & "Color = " & .Color
+          Debug.Print myF & "LineStyle = " & .LineStyle
+        End With
+      Next I
     End With
   End With
