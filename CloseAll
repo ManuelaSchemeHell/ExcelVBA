@@ -1,0 +1,31 @@
+Private Sub cmdWeg_Click()
+  CloseTmp
+End Sub
+
+Private Sub cmdWeg_DblClick(ByVal Cancel As MSForms.ReturnBoolean)
+  CloseAll
+End Sub
+
+Public Sub CloseAll()
+  Dim Wb As Workbook, myName As String
+  
+  myName = LCase(ThisWorkbook.Name)
+  
+  ' alle Exceldateien schließen
+  For Each Wb In Application.Workbooks
+    If LCase(Wb.Name) <> myName Then Wb.Close False
+  Next Wb
+
+End Sub
+
+Public Sub CloseTmp()
+  Dim Wb As Workbook
+  
+  ' temporäre Exceldateien schließen
+  For Each Wb In Application.Workbooks
+    If Wb.Path = "" Then Wb.Close False
+  Next Wb
+
+End Sub
+
+
