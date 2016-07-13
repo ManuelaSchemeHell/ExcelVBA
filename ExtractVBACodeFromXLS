@@ -1,4 +1,7 @@
   ' Export VBA Code aus Excel-Dateien
+  ' this program opens all xls oder xlsm Files in a directory chosen by user
+  ' and writes the contained VBA-Code in a new Excel-Workbook
+  ' one sheet for every xls-file
   
   Dim mySl As Object, myTitel As String, myShape As Object, nyShape As Object
   Dim sPfad As String, cdir As String
