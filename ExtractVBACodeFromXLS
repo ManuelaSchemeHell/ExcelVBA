@@ -1,0 +1,165 @@
+  ' Export VBA Code aus Excel-Dateien
+  
+  Dim mySl As Object, myTitel As String, myShape As Object, nyShape As Object
+  Dim sPfad As String, cdir As String
+  Dim myR As Range
+  Dim I As Integer, J As Long, K As Integer, C As Long
+  Dim appWb As Workbook, appSh As Worksheet, mySh As Worksheet
+  Dim ShName As String, Rng As Range, R As Range
+  Dim Component As Object, Zeile, VBComp As Object
+  Dim oName As String, pName As String
+
+  Application.DisplayAlerts = False
+  Application.EnableEvents = False
+  Application.ScreenUpdating = False
+  
+  On Error GoTo Hell
+  sPfad = DateiPfad
+  cdir = Dir(sPfad & "*.xls")
+  If cdir = "" Then
+    MsgBox "Keine Exceldatei im Verzeichnis " & sPfad & " gefunden, " & Chr(10) & Chr(13) & _
+    "Programm wird beendet"
+    GoTo Hell
+  End If
+  
+  Set nWb = Workbooks.Add
+  Set nSh = nWb.ActiveSheet
+  
+  While cdir <> ""
+    ' normale Exceldateien werden nicht untersucht
+    ' nur solche, die Makros enthalten oder das alte Format
+    If Right(cdir, 1) <> "m" And Right(cdir, 3) <> "xls" Then GoTo TuGarNix
+    On Error Resume Next
+    Workbooks.Open sPfad & cdir, 0
+    If Err = 0 Then
+      Set appWb = ActiveWorkbook
+    Else
+      Set appWb = Application.Workbooks(cdir)
+      Debug.Print "Datei "; cdir; " bereits geöffnet"
+      Err.Clear
+    End If
+    Set nSh = nWb.Worksheets.Add
+    With nSh.Columns("B:B").Font
+      .Name = "Courier New"
+      .Size = 9
+    End With
+    ThisWorkbook.Activate
+    On Error Resume Next
+    nSh.Name = Mid(appWb.Name, 1, 30)
+    If Err <> 0 Then
+      Err.Clear
+      For I = 2 To Len(appWb.Name)
+        nSh.Name = Mid(appWb.Name, I, 30)
+        If Err = 0 Then Exit For
+        Err.Clear
+      Next I
+    End If
+    Set myR = nSh.Cells(1, 1)
+    myR.ColumnWidth = 20
+    myR(1, 2) = "Programmcode Excel-Datei: "
+    myR(1, 3) = appWb.FullName
+    ' wir fügen einen Link zur Excel Datei ein, sodass man sie direkt öffnen kann
+    nSh.Hyperlinks.Add Anchor:=myR, Address:=appWb.FullName, _
+    TextToDisplay:="Excel Datei öffnen"
+    
+   ' For Each VBComp In appWb.VBProject.VBComponents
+    '    myR(1, 2).Value = VBComp.Name
+   '     myR(1, 1).Value = VBComp.Type
+    '    Set myR = myR(2, 1)
+    'Next VBComp
+    'ListCode appWb
+    Set myR = myR(3, 1) ' um 2 Zeilen nach unten verschieben, statt offset
+    For I = 1 To appWb.VBProject.VBComponents.Count
+      myR(1, 2).Value = appWb.VBProject.VBComponents(I).Name
+      myR(1, 1).Value = ComponentTypeToString(appWb.VBProject.VBComponents(I).Type)
+      myR.Font.Size = 12
+      myR(1, 2).Font.Size = 12
+      With appWb.VBProject.VBComponents(I).CodeModule
+        If .CountOfLines < 3 Then GoTo TuNix
+        Set myR = myR(2, 1)
+        If .CountOfDeclarationLines < 3 Then GoTo NoDecs ' keine Deklarationen
+        myR = "Declarations"
+        Set myR = myR(2, 1)
+        For J = 1 To .CountOfDeclarationLines
+          myR(J, 1) = "Line# " & J
+          myR(J, 2) = .Lines(J, 1)
+        Next J
+        Set myR = myR(J + 1, 1)
+        If .CountOfDeclarationLines + 1 > .CountOfLines Then GoTo TuNix
+NoDecs:
+        myR = "Procedures"
+        Set myR = myR(2, 1)
+        oName = .ProcOfLine(.CountOfDeclarationLines + 1, vbext_pk_Proc)
+        'Debug.Print appWb.VBProject.VBComponents(I).codemodule.Lines(1, C)
+        myR = oName
+        For J = .CountOfDeclarationLines + 1 To .CountOfLines
+          pName = .ProcOfLine(J, vbext_pk_Proc)
+          If pName <> oName Or J = .CountOfDeclarationLines + 1 Then
+            myR = pName
+            With myR.Font
+              .Size = 11
+              .Color = RGB(255, 0, 0)
+              .Bold = True
+            End With
+            myR(1, 2) = String(150, "*")
+            oName = pName
+          Else
+            myR(1, 1) = "Line# " & J
+            myR(1, 2) = appWb.VBProject.VBComponents(I).CodeModule.Lines(J, 1)
+          End If
+          Set myR = myR(2, 1)
+        Next J
+        'myR.Offset(1, 0) = appWb.VBProject.VBComponents(I).codemodule.Lines(1, C)
+        'Set myR = myR(.CountOfLines + 2, 1)
+      
+      End With
+TuNix:
+    Next I
+    
+    appWb.Close False
+TuGarNix:
+    cdir = Dir
+   
+  Wend
+  
+  On Error Resume Next
+  For Each mySh In nWb.Worksheets
+    If mySh.Cells(1, 1) = "" Then mySh.Delete
+  Next mySh
+  
+  Set mySh = nWb.Worksheets.Add(nWb.Worksheets(1))
+  Set myR = mySh.Cells(1, 1)
+  myR = "Übersicht über alle Excel-Progamme im Verzeichnis " & sPfad
+  mySh.Name = "Programmübersicht"
+  myR(3, 1) = "Codezeilen"
+  myR(3, 2) = "Name"
+  myR(3, 3) = "Zum Programmcode"
+  myR(3, 4) = "Excel-Datei öffnen"
+  Set myR = myR(4, 1)
+  myR(1, 3).ColumnWidth = 30
+  myR(1, 4).ColumnWidth = 30
+  For I = 1 To nWb.Worksheets.Count
+    Set appSh = nWb.Worksheets(I)
+    If LCase(appSh.Name) <> LCase(mySh.Name) Then
+      myR(1, 2) = appSh.Name
+      myR = appSh.UsedRange.Rows.Count
+      mySh.Hyperlinks.Add Anchor:=myR(1, 3), Address:="", SubAddress:= _
+        "'" & appSh.Name & "'!A1", TextToDisplay:=appSh.Name
+      ' Erzeugen des Verweises zurück auf das Übersichtsblatt
+      appSh.Rows(1).EntireRow.Insert
+      appSh.Hyperlinks.Add Anchor:=appSh.Cells(1, 1), Address:="", SubAddress:= _
+        "'" & mySh.Name & "'!A1", TextToDisplay:="Übersicht über alle Excel-Progamme im Verzeichnis " & sPfad
+      ' Erzeugen eines Links zur Excel Datei
+      mySh.Hyperlinks.Add Anchor:=myR(1, 4), Address:=appSh.Cells(2, 3).Value, _
+      TextToDisplay:=myR(1, 2) & " öffnen"
+      Set myR = myR(2, 1)
+    End If
+  Next I
+  
+Hell:
+  If Err <> 0 Then Debug.Print "Fehler in cmdXcl", Err.Number, Err.Description
+  On Error Resume Next
+
+  Application.DisplayAlerts = True
+  Application.EnableEvents = True
+  Application.ScreenUpdating = True
