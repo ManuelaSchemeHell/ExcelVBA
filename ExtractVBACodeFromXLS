@@ -2,11 +2,12 @@
   ' this program opens all xls oder xlsm Files in a directory chosen by user
   ' and writes the contained VBA-Code in a new Excel-Workbook
   ' one sheet for every xls-file
-  
-  Dim mySl As Object, myTitel As String, myShape As Object, nyShape As Object
+  ' kann sich jetzt auch selber analysieren
+ 
+  Dim Ich As Boolean
   Dim sPfad As String, cdir As String
   Dim myR As Range
-  Dim I As Integer, J As Long, K As Integer, C As Long
+  Dim I As Integer, J As Long
   Dim appWb As Workbook, appSh As Worksheet, mySh As Worksheet
   Dim ShName As String, Rng As Range, R As Range
   Dim Component As Object, Zeile, VBComp As Object
@@ -33,13 +34,20 @@
     ' nur solche, die Makros enthalten oder das alte Format
     If Right(cdir, 1) <> "m" And Right(cdir, 3) <> "xls" Then GoTo TuGarNix
     On Error Resume Next
-    Workbooks.Open sPfad & cdir, 0
-    If Err = 0 Then
-      Set appWb = ActiveWorkbook
+    Ich = False
+    If LCase(sPfad & cdir) = LCase(ThisWorkbook.FullName) Then
+      Set appWb = ThisWorkbook
+      Debug.Print "Selbstanalyse"
+      Ich = True
     Else
-      Set appWb = Application.Workbooks(cdir)
-      Debug.Print "Datei "; cdir; " bereits geöffnet"
-      Err.Clear
+      Workbooks.Open sPfad & cdir, 0
+      If Err = 0 Then
+        Set appWb = ActiveWorkbook
+      Else
+        Set appWb = Application.Workbooks(cdir)
+        Debug.Print "Datei "; cdir; " bereits geöffnet"
+        Err.Clear
+      End If
     End If
     Set nSh = nWb.Worksheets.Add
     With nSh.Columns("B:B").Font
@@ -119,7 +127,7 @@ NoDecs:
 TuNix:
     Next I
     
-    appWb.Close False
+    If Not Ich Then appWb.Close False
 TuGarNix:
     cdir = Dir
    
@@ -139,8 +147,9 @@ TuGarNix:
   myR(3, 3) = "Zum Programmcode"
   myR(3, 4) = "Excel-Datei öffnen"
   Set myR = myR(4, 1)
-  myR(1, 3).ColumnWidth = 30
-  myR(1, 4).ColumnWidth = 30
+  myR(1, 2).ColumnWidth = 40
+  myR(1, 3).ColumnWidth = 40
+  myR(1, 4).ColumnWidth = 40
   For I = 1 To nWb.Worksheets.Count
     Set appSh = nWb.Worksheets(I)
     If LCase(appSh.Name) <> LCase(mySh.Name) Then
