@@ -1,16 +1,20 @@
+  ' importieren des VBA-Codes aus einer Datenbank
+  ' für jede VBA-Komponente wird ein eigenes Tabellenblatt erstellt
+  ' um die Übersichtlichkeit zu erhöhen
+  ' außerdem wird ein Übersichtsblatt erzeugt sowie Links eingefügt
+  
   Dim appAcc As Object, AccDB As Object, AccData As Object
-  Dim AccCode As Object
-  Dim appName As String, mCount As Long, I As Long, tCount As Long
+  Dim appName As String, I As Long, tCount As Long
   Dim cProject As Long, cVBComp As Long, J As Long, K As Long, cLines As Long
   Dim nWb As Workbook, nSh As Worksheet, Rng As Range, mySh As Worksheet
   
   On Error Resume Next
-  appName = "C:\Data_local\exceltest\dummy.accdb"
+  appName = "C:\Data_local\exceltest\Unlock.accdb"
   Set Rng = FindString("Access-DB:", ThisWorkbook.ActiveSheet.Cells)
   If Not Rng Is Nothing Then
     If Rng > " " Then appName = Rng
   End If
- 
+  
   If Dir(appName) = "" Then
     MsgBox "Datenbank " & appName & " existiert nicht, Programm wird beendet"
     End
@@ -94,6 +98,9 @@
   Set appAcc = Nothing
   Set AccDB = Nothing
   
+  ' jetzt erzeugen wir noch eine Linkliste im Übersichtsblatt
+  ' für den Fall, dass wir viele Sheets haben
+  
   Set nSh = nWb.Worksheets("Übersicht")
   Set Rng = nSh.UsedRange.Offset(2, 0)
   Set Rng = nSh.Cells(Rng.Row, 1)
@@ -101,7 +108,7 @@
   Rng(1, 2) = "Prozedurname"
   Rng(1, 3) = "Zum Code"
   Set Rng = Rng(2, 1)
-  Rng(1, 1).ColumnWidth = 15
+  Rng(1, 1).ColumnWidth = 10
   Rng(1, 2).ColumnWidth = 40
   Rng(1, 3).ColumnWidth = 40
   For I = 1 To nWb.Worksheets.Count
@@ -109,9 +116,15 @@
     Set mySh = nWb.Worksheets(I)
     If mySh.Name = nSh.Name Then GoTo TuNix
     Rng = mySh.Cells(1, 7) ' Codezeilen
+    mySh.Cells(1, 7).Clear
     Rng(1, 2) = mySh.Cells(1, 20).Value ' versteckter Name
     nSh.Hyperlinks.Add Anchor:=Rng(1, 3), Address:="", SubAddress:= _
       "'" & mySh.Name & "'!A1", TextToDisplay:="'" & mySh.Name
+    mySh.Hyperlinks.Add Anchor:=mySh.Cells(1, 7), Address:="", SubAddress:= _
+      "'" & nSh.Name & "'!A1", TextToDisplay:="zur Übersicht"
+    mySh.Hyperlinks.Add Anchor:=mySh.Cells(mySh.UsedRange.SpecialCells(xlCellTypeLastCell).Row + 2, 1), _
+      Address:="", SubAddress:="'" & mySh.Name & "'!A1", TextToDisplay:="zum Seitenanfang"
+
     Set Rng = Rng(2, 1)
 TuNix:
   Next I
