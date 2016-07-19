@@ -1,0 +1,126 @@
+  Dim appAcc As Object, AccDB As Object, AccData As Object
+  Dim AccCode As Object
+  Dim appName As String, mCount As Long, I As Long, tCount As Long
+  Dim cProject As Long, cVBComp As Long, J As Long, K As Long, cLines As Long
+  Dim nWb As Workbook, nSh As Worksheet, Rng As Range, mySh As Worksheet
+  
+  On Error Resume Next
+  appName = "C:\Data_local\exceltest\dummy.accdb"
+  Set Rng = FindString("Access-DB:", ThisWorkbook.ActiveSheet.Cells)
+  If Not Rng Is Nothing Then
+    If Rng > " " Then appName = Rng
+  End If
+ 
+  If Dir(appName) = "" Then
+    MsgBox "Datenbank " & appName & " existiert nicht, Programm wird beendet"
+    End
+  End If
+  
+  Set nWb = Workbooks.Add
+  Set nSh = nWb.Worksheets(1)
+  Set Rng = nSh.Cells(1, 1)
+  nSh.Name = "Übersicht"
+  
+  Rng = appName
+  Set Rng = Rng(3, 1)
+  Set appAcc = Nothing
+  Set appAcc = CreateObject("Access.Application")
+  appAcc.OpenCurrentDatabase appName
+  If appAcc Is Nothing Then
+    MsgBox "Datenbank " & appName & " konnte nicht geöffnet werden, Programm wird beendet"
+    End
+  End If
+  Set AccDB = appAcc.CurrentProject
+  appAcc.Properties("AllowBypassKey").Value = True
+  
+  Set AccData = appAcc.CurrentData
+  cProject = appAcc.VBE.VBProjects.Count
+  For I = 1 To cProject
+    ' alle vorhandenen Codeteile
+    ' z.B. für Forms oder Reports
+    
+    With appAcc.VBE.VBProjects(I)
+      Rng = "Projekt# " & I
+      Rng(1, 2) = "Projektname: " & .Name
+      'Debug.Print "Komponenten: "; .VBComponents.Count
+      Rng(1, 4) = "VB Komponenten: " & .VBComponents.Count
+      Set Rng = Rng(3, 1)
+      cVBComp = .VBComponents.Count
+      For J = 1 To cVBComp
+        On Error Resume Next
+        Set nSh = nWb.Worksheets(nSh.Index + 1)
+        If Err <> 0 Then
+          Err.Clear
+          Set nSh = nWb.Worksheets.Add(, nWb.Worksheets(nWb.Worksheets.Count))
+        End If
+        Set Rng = nSh.Cells(1, 1)
+        Select Case Left(.VBComponents(J).Name, 5)
+          Case "Form_"
+            nSh.Name = Mid(.VBComponents(J).Name, 6, 30)
+          Case "Repor"
+            nSh.Name = Mid(.VBComponents(J).Name, 8, 30)
+          Case "ErrEx"
+            nSh.Name = Mid(.VBComponents(J).Name, 6, 30)
+          Case Else
+            nSh.Name = Left(.VBComponents(J).Name, 30)
+        End Select
+        If Err <> 0 Then Err.Clear
+        On Error GoTo Hell
+        Rng = "VBComp: " & J
+        'Rng(1, 2) = "Typ: " & .VBComponents(J).Type
+        Rng(1, 2) = "Modulname: " & .VBComponents(J).Name
+        Rng(1, 20) = .VBComponents(J).Name
+        Rng(1, 20).Font.Color = RGB(255, 255, 255) ' unsichtbar machen
+        'Debug.Print "Komponente: "; J
+        Rng(1, 5) = "Codezeilen: " & .VBComponents(J).CodeModule.CountOfLines
+        Rng(1, 7) = .VBComponents(J).CodeModule.CountOfLines
+        Set Rng = Rng(3, 1)
+        Debug.Print "Name: "; .VBComponents(J).Name
+        Debug.Print "Codezeilen: "; .VBComponents(J).CodeModule.CountOfLines
+        cLines = .VBComponents(J).CodeModule.CountOfLines
+        For K = 1 To cLines
+          Rng(K, 1) = K
+          Rng(K, 2) = .VBComponents(J).CodeModule.Lines(K, 1)
+          'Debug.Print "Codezeile: "; K; .VBComponents(J).CodeModule.Lines(K, 1)
+        Next K
+        Set Rng = Rng(K + 1, 1)
+        With nSh.Columns(2)
+          .Font.Name = "Courier new"
+          .Font.Size = 8
+        End With
+      Next J
+    End With
+  Next I
+  Set appAcc = Nothing
+  Set AccDB = Nothing
+  
+  Set nSh = nWb.Worksheets("Übersicht")
+  Set Rng = nSh.UsedRange.Offset(2, 0)
+  Set Rng = nSh.Cells(Rng.Row, 1)
+  Rng(1, 1) = "Codezeilen"
+  Rng(1, 2) = "Prozedurname"
+  Rng(1, 3) = "Zum Code"
+  Set Rng = Rng(2, 1)
+  Rng(1, 1).ColumnWidth = 15
+  Rng(1, 2).ColumnWidth = 40
+  Rng(1, 3).ColumnWidth = 40
+  For I = 1 To nWb.Worksheets.Count
+    ' alle Tabellenblätter der Reihe nach durchgehen
+    Set mySh = nWb.Worksheets(I)
+    If mySh.Name = nSh.Name Then GoTo TuNix
+    Rng = mySh.Cells(1, 7) ' Codezeilen
+    Rng(1, 2) = mySh.Cells(1, 20).Value ' versteckter Name
+    nSh.Hyperlinks.Add Anchor:=Rng(1, 3), Address:="", SubAddress:= _
+      "'" & mySh.Name & "'!A1", TextToDisplay:="'" & mySh.Name
+    Set Rng = Rng(2, 1)
+TuNix:
+  Next I
+  nSh.Activate
+  
+Hell:
+  If Err <> 0 Then Debug.Print "Fehler in cmdAcc", Err.Number, Err.Description
+  On Error Resume Next
+
+  Application.DisplayAlerts = True
+  Application.EnableEvents = True
+  Application.ScreenUpdating = True
