@@ -1,0 +1,117 @@
+  ' Analyse von Excel Dateien
+  
+  Dim mySl As Object, myTitel As String, myShape As Object, nyShape As Object
+  Dim sPfad As String, cDir As String
+  Dim myR As Range
+  Dim I As Integer, J As Integer, K As Integer
+  Dim appWb As Workbook, appSh As Worksheet, mySh As Worksheet
+  Dim ShName As String, Rng As Range, R As Range
+  Dim xName As String, rekursiv As Boolean
+  
+  Application.DisplayAlerts = False
+  Application.EnableEvents = False
+  Application.ScreenUpdating = False
+  
+  On Error GoTo Hell
+  sPfad = DateiPfad
+  Set DingsBums = New Collection
+  
+  rekursiv = chkSubF
+  FindFiles sPfad, "xls", DingsBums, rekursiv
+  
+  If DingsBums.Count = 0 Then
+    MsgBox "Keine Exceldatei im Verzeichnis " & sPfad & " gefunden, " & Chr(10) & Chr(13) & _
+    "Programm wird beendet"
+    GoTo Hell
+  End If
+  
+  Set nWb = Workbooks.Add
+  Set nSh = nWb.ActiveSheet
+  
+  For K = 1 To DingsBums.Count
+    Ich = False
+    xName = LCase(DingsBums(K))
+    On Error Resume Next
+    If xName = LCase(ThisWorkbook.FullName) Then
+      Set appWb = ThisWorkbook
+      Debug.Print "Selbstanalyse"
+      Ich = True
+    Else
+      If Right(xName, Len(xName) - InStrRev(xName, "\", , vbTextCompare)) = _
+      LCase(ThisWorkbook.Name) Then
+        Debug.Print "Wegen Namensgleichheit kann " & DingsBums(K) & " nicht geöffnet werden"
+        GoTo TuNix
+      End If
+      Workbooks.Open xName, 0
+      If Err = 0 Then
+        Set appWb = ActiveWorkbook
+      Else
+        Set appWb = Application.Workbooks(xName)
+        Debug.Print "Datei "; xName; " bereits geöffnet"
+        Err.Clear
+      End If
+    End If
+    If nSh.Cells(1, 1) > " " Then
+      Set nSh = nWb.Worksheets.Add
+    End If
+    On Error Resume Next
+    nSh.Name = Mid(appWb.Name, 1, 30)
+    If Err <> 0 Then
+      Err.Clear
+      For I = 30 To 2 Step -1
+        nSh.Name = Mid(appWb.Name, 1, I)
+        If Err = 0 Then Exit For
+        Err.Clear
+      Next I
+    End If
+    On Error GoTo Hell
+    Set Rng = nSh.Cells(2, 1)
+    nSh.Cells(1, 1) = appWb.FullName
+    Rng.Offset(1, 0).Value = "Tabelle"
+    Rng.Offset(1, 1).Value = "Zelle"
+    Rng.Offset(1, 2).Value = "Wert angezeigt"
+    Rng.Offset(1, 3).Value = "Zellinhalt"
+    Rng.Offset(1, 4).Value = "Formel/Verknüpfung"
+    Rng.Offset(1, 4).ColumnWidth = 150
+    Rng(1, 1).ColumnWidth = 20
+    Rng(1, 2).ColumnWidth = 5
+    Rng(1, 3).ColumnWidth = 50
+    Rng(1, 4).ColumnWidth = 50
+    nSh.Range(Rng.Offset(1, 0), Rng.Offset(1, 4)).Font.Bold = True
+    Set Rng = Rng.Offset(1, 0)
+    For Each mySh In appWb.Worksheets
+      Set Rng = Rng.Offset(1, 0)
+      With mySh
+        For Each R In .UsedRange
+          Rng.Value = .Name
+          Rng(1, 2).Value = R.Address
+          Rng(1, 3).Value = "'" & R.Text
+          Rng(1, 4).Value = R.Value
+          Rng(1, 5).Value = "'" & R.FormulaLocal
+          Set Rng = Rng(2, 1)
+        Next R
+      End With
+    Next mySh
+    
+    If Not Ich Then appWb.Close False
+    nSh.Activate
+    nSh.Rows(4).Select
+    ActiveWindow.FreezePanes = True
+    nSh.Rows(3).Select
+    Selection.AutoFilter
+TuNix:
+  Next K
+  
+  On Error Resume Next
+  InsertSheet nWb, "Excel", sPfad
+  MsgBox "Analyse der Exceldateien im Verzeichnis " & sPfad & _
+  "durchgeführt"
+  nWb.Worksheets(1).Activate
+  
+Hell:
+  If Err <> 0 Then Debug.Print "Fehler in cmdXcl", Err.Number, Err.Description
+  On Error Resume Next
+
+  Application.DisplayAlerts = True
+  Application.EnableEvents = True
+  Application.ScreenUpdating = True
