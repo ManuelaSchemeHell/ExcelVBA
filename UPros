@@ -1,0 +1,386 @@
+Function ArbeitsmappeOffen(AMappe As String) As Boolean
+  On Error GoTo Fehler
+  mappetext = Workbooks(AMappe).Name
+  ArbeitsmappeOffen = True
+  Exit Function
+  On Error GoTo Fehler
+  Workbooks.Open AMappe
+  openbook = True
+  Exit Function
+
+Fehler:
+  ArbeitsmappeOffen = False
+End Function
+
+Public Function IstDatum(Wert) As Boolean
+  
+  IstDatum = False
+  
+  If IsEmpty(Wert) Then Exit Function
+  If Not IsDate(Wert) Then Exit Function
+  
+  IstDatum = True
+  
+End Function
+
+Function FolderDa(Folder As String) As Boolean
+  On Error Resume Next
+  FolderDa = False
+  FolderDa = Dir(Folder, vbDirectory) <> ""
+End Function
+
+Function Arbeitsmappe(AMappe As String) As Workbook
+  
+  ' diese Funktion überprüft, ob eine Excel-Mappe, die im Namen den String Amappe enthälte, offen ist
+  ' zusätzlich wird sichergestellt, dass nicht die ausführende Exceldatei selbst als Rückgabewert
+  ' zurückgeliefert wird
+  
+  On Error GoTo Hell
+  
+  For Each Wb In Application.Workbooks
+    ' die aufrufende Arbeitsmappe wollen wir ausschließen
+    If InStr(LCase(Wb.Name), LCase(AMappe)) > 0 And ThisWorkbook.Name <> Wb.Name Then
+      Set Arbeitsmappe = Wb
+      Exit Function
+    End If
+  Next Wb
+  Set Arbeitsmappe = Nothing
+  Exit Function
+
+Hell:
+  Set Arbeitsmappe = Nothing
+  Debug.Print "Fehler aufgetreten in Function ArbeitsmappeDa, ", Err.Number, Err.Description
+End Function
+
+Function Blatt(Enthlt As String, Wb As Workbook) As Worksheet
+
+  ' diese Funktion überprüft, ob ein Tabellenblatt im Workbook Wb enthalten ist
+  ' das den Text "Tabellenname" enthält
+  ' und liefert das Tabellenblatt zurück
+  
+  Dim I As Integer, S As String, UName As String
+  
+  Set Blatt = Nothing
+  UName = UCase(Enthlt)
+  
+  For I = 1 To Wb.Worksheets.Count
+     S = UCase(Wb.Worksheets(I).Name)
+     If InStr(S, UName) > 0 Then
+        Set Blatt = Wb.Worksheets(I)
+        Exit Function
+     End If
+  Next I
+End Function
+
+Public Function BlattDa(myName As String) As Worksheet
+  ' wir überprüfen, ob der Blattname myName in
+  ' irgendeinem geöffneten Excel Workbook vorhanden ist
+  ' wenn ja, geben wir dieses Blatt als Objekt zurück
+  ' ansonsten nothing
+  
+  Dim I As Integer, Wb As Workbook, S As String, UName As String
+  
+  Set BlattDa = Nothing
+  UName = UCase(myName)
+  
+  For Each Wb In Application.Workbooks
+    For I = 1 To Wb.Worksheets.Count
+       S = UCase(Wb.Worksheets(I).Name)
+       If InStr(S, UName) > 0 Then
+          Set BlattDa = Wb.Worksheets(I)
+          Exit Function
+       End If
+    Next I
+  Next Wb
+
+End Function
+
+Public Sub DisFormate()
+  Dim myR As Range, myZ As String, myF As String
+  Dim I As Integer
+  
+  Set myR = ActiveCell
+  myZ = """" & myR.Address & """."
+  With myR
+    Debug.Print myZ & "FormulaLocal = " & .FormulaLocal
+    Debug.Print myZ & "Width = " & .Width
+    Debug.Print myZ & "Height = " & .Height
+    Debug.Print myZ & "HorizontalAlignment = " & .HorizontalAlignment
+    Debug.Print myZ & "VerticalAlignment = " & .VerticalAlignment
+    With .Font
+      myF = myZ & "Font."
+      Debug.Print myF & "color = " & .Color
+      Debug.Print myF & "bold = " & .Bold
+      Debug.Print myF & "Size = " & .Size
+      Debug.Print myF & "Italic = " & .Italic
+      Debug.Print myF & "Name = " & .Name
+      Debug.Print myF & "Underline = " & .Underline
+    End With
+    With .Interior
+      myF = myZ & "Interior."
+      If .Pattern <> xlPatternNone Then
+        Debug.Print myF & "Color = " & .Color
+        Debug.Print myF & "Pattern = " & .Pattern
+        Debug.Print myF & "PatternColor = " & .PatternColor
+      End If
+    End With
+    With .Borders
+      myF = myZ & "Borders."
+      Debug.Print myF & "Count = " & .Count
+      Debug.Print myF & "Weight = " & .Weight
+      Debug.Print myF & "Color = " & .Color
+      Debug.Print myF & "LineStyle = " & .LineStyle
+      
+      For I = 1 To .Count
+        myF = myZ & "Borders(" & I & ")."
+        With myR.Borders(I)
+          If .LineStyle <> xlLineStyleNone Then ' nur wenn vom Standard abweicht
+            Debug.Print myF & "Weight = " & .Weight
+            Debug.Print myF & "Color = " & .Color
+            Debug.Print myF & "LineStyle = " & .LineStyle
+          End If
+        End With
+      Next I
+    End With
+  End With
+
+End Sub
+Public Sub CloseAll()
+  Dim Wb As Workbook, myName As String
+  
+  myName = LCase(ThisWorkbook.Name)
+  
+  ' alle Exceldateien schließen
+  For Each Wb In Application.Workbooks
+    If LCase(Wb.Name) <> myName Then Wb.Close False
+  Next Wb
+
+End Sub
+
+Public Sub CloseTmp()
+  Dim Wb As Workbook
+  
+  ' temporäre Exceldateien schließen
+  For Each Wb In Application.Workbooks
+    If Wb.Path = "" Then Wb.Close False
+  Next Wb
+
+End Sub
+
+Public Function DateiPfad() As String
+
+  Dim myPfad As String, myRng As Range, mySh As Worksheet
+  Set mySh = ThisWorkbook.ActiveSheet
+  Set myRng = Nothing
+  On Error Resume Next
+  Set myRng = mySh.Cells.Find(What:="Dateipfad:", After:=Range("A1"), LookIn:=xlFormulas, LookAt _
+      :=xlPart, SearchDirection:=xlNext, MatchCase:= _
+      False, SearchFormat:=False).Offset(0, 1)
+  If myRng Is Nothing Or Err <> 0 Or myRng <= " " Then
+    Err.Clear
+    DateiPfad = mySh.Parent.Path & "\"
+  Else
+    myPfad = myRng
+    If Right(myPfad, 1) <> "\" Then myPfad = myPfad & "\"
+    DateiPfad = myPfad
+  End If
+End Function
+
+
+Sub FindPatternMatchedFiles()
+
+  Dim objFSO As Object
+  Set objFSO = CreateObject("Scripting.FileSystemObject")
+  
+  Dim sPfad As String
+  
+  'RegExp steht für Regular expression
+  
+  Dim objRegExp As Object
+  Set objRegExp = CreateObject("VBScript.RegExp")
+  ' wir betrachten nur xls oder xlsm-Files
+  ' xlsx-Files beispielsweise werden ignoriert
+  objRegExp.Pattern = "*.xlsm"
+  objRegExp.IgnoreCase = True
+
+  Dim colFiles As Collection
+  Set colFiles = New Collection
+  sPfad = DateiPfad
+  RecursiveFileSearch sPfad, objRegExp, colFiles, objFSO
+
+  For Each f In colFiles
+    Debug.Print (f)
+    'Insert code here to do something with the matched files
+  Next
+
+  'Garbage Collection
+  Set objFSO = Nothing
+  Set objRegExp = Nothing
+
+End Sub
+
+Sub FindFiles(myDir As String, myPattern As String, myCollection As Collection, _
+  Optional rekursiv As Boolean = False)
+  ' wir suchen im Verzeichnis myDir alle Dateien, die myPattern als
+  ' regular Expression entsprechen
+  ' die Dateien werden myCollection hinzugefügt
+  ' rekursiv gibt an, ob Unterverzeichnis berücksichtigt werden sollen
+  ' zwischen groß- und Kleinschreibung wird nicht unterschieden
+  
+  Dim FSO As Object, RegExp As Object
+  
+  ' Ausdruck für Regular Expression
+  Set RegExp = CreateObject("VBScript.RegExp")
+  RegExp.Pattern = myPattern
+  RegExp.IgnoreCase = True
+  
+  Set FSO = CreateObject("Scripting.FileSystemObject")
+  
+  If rekursiv Then
+    RecursiveFileSearch myDir, RegExp, myCollection, FSO
+  Else
+    FileSearch myDir, RegExp, myCollection, FSO
+  End If
+  Set FSO = Nothing
+  Set RegExp = Nothing
+  
+End Sub
+
+Sub RecursiveFileSearch(ByVal targetFolder As String, ByRef objRegExp As Object, _
+                    ByRef matchedFiles As Collection, ByRef objFSO As Object)
+
+    Dim objFolder As Object
+    Dim objFile As Object
+    Dim objSubFolders As Object
+    Dim myExt As String
+
+    'Get the folder object associated with the target directory
+    Set objFolder = objFSO.GetFolder(targetFolder)
+
+    'Loop through the files current folder
+    For Each objFile In objFolder.Files
+      myExt = objFSO.getExtensionName(objFile)
+      If objRegExp.Test(myExt) And Left(objFile.Name, 1) <> "~" Then
+        matchedFiles.Add (objFile)
+      End If
+    Next
+
+    'Loop through the each of the sub folders recursively
+    Set objSubFolders = objFolder.Subfolders
+    For Each objSubfolder In objSubFolders
+      RecursiveFileSearch objSubfolder, objRegExp, matchedFiles, objFSO
+    Next
+
+    'Garbage Collection
+    Set objFolder = Nothing
+    Set objFile = Nothing
+    Set objSubFolders = Nothing
+
+End Sub
+
+Sub FileSearch(ByVal targetFolder As String, ByRef objRegExp As Object, _
+                    ByRef matchedFiles As Collection, ByRef objFSO As Object)
+  ' nichtrekursive Dateisuche
+    Dim objFolder As Object
+    Dim objFile As Object
+    Dim objSubFolders As Object
+    Dim myExt As String
+
+    'Get the folder object associated with the target directory
+    Set objFolder = objFSO.GetFolder(targetFolder)
+    On Error Resume Next
+    'Loop through the files current folder
+    For Each objFile In objFolder.Files
+      myExt = objFSO.getExtensionName(objFile)
+      If objRegExp.Test(myExt) And Left(objFile.Name, 1) <> "~" Then
+        matchedFiles.Add (objFile)
+      End If
+    Next
+
+    'Garbage Collection
+    Set objFolder = Nothing
+    Set objFile = Nothing
+    Set objSubFolders = Nothing
+
+End Sub
+
+
+Public Sub TestRegExp()
+  Dim regex As Object, str As String
+  Set regex = CreateObject("VBScript.RegExp")
+  str = "abce.xls"
+  regex.Pattern = "*.xls?"
+  Debug.Print regex.Test(str)
+  
+End Sub
+
+Public Sub InsertSheet(myWb As Workbook, myTitel As String, myPath As String)
+  ' als erstes Worksheet ein Übersichtsblatt mit Links zu allen Blättern einfügen
+  
+  Dim mySh As Worksheet
+  Dim myR As Range
+  
+  On Error Resume Next
+  For Each mySh In myWb.Worksheets
+    If mySh.Cells(1, 1) = "" Then mySh.Delete
+  Next mySh
+  ' keine Aktion nötig wenn nur 1 Tabellenblatt vorhanden
+  If myWb.Worksheets.Count = 1 Then Exit Sub
+  Set mySh = myWb.Worksheets.Add(myWb.Worksheets(1))
+  Set myR = mySh.Cells(1, 1)
+  myR = myTitel & "-Dateien im Verzeichnis " & myPath
+  myR.Font.Size = 12
+  myR.Font.Bold = True
+
+  mySh.Name = "Übersichtsblatt"
+  myR(3, 1) = "Zeilen"
+  myR(3, 2) = myTitel & "-Dateiname"
+  myR(3, 3) = "Zum Inhalt"
+  myR(3, 4) = myTitel & "-Datei öffnen"
+  Set myR = myR(4, 1)
+  myR(1, 1).ColumnWidth = 5
+  myR(1, 2).ColumnWidth = 40
+  myR(1, 3).ColumnWidth = 40
+  myR(1, 4).ColumnWidth = 40
+  For I = 1 To myWb.Worksheets.Count
+    Set appSh = myWb.Worksheets(I)
+    If LCase(appSh.Name) <> LCase(mySh.Name) Then
+      myR(1, 2) = appSh.Cells(1, 1)
+      myR = appSh.UsedRange.Rows.Count
+      mySh.Hyperlinks.Add Anchor:=myR(1, 3), Address:="", SubAddress:= _
+        "'" & appSh.Name & "'!A1", TextToDisplay:="'" & appSh.Name
+      ' Erzeugen des Verweises zurück auf das Übersichtsblatt
+      appSh.Rows(1).EntireRow.Insert
+      appSh.Hyperlinks.Add Anchor:=appSh.Cells(1, 1), Address:="", SubAddress:= _
+        "'" & mySh.Name & "'!A1", TextToDisplay:="zum Übersichtsblatt"
+      appSh.Hyperlinks.Add Anchor:=appSh.Cells(1, 3), Address:=appSh.Cells(2, 1).Value, _
+      TextToDisplay:="'" & myR(1, 2) & " öffnen"
+      ' Erzeugen eines Links zur Datei
+      mySh.Hyperlinks.Add Anchor:=myR(1, 4), Address:=appSh.Cells(2, 1).Value, _
+      TextToDisplay:="'" & myR(1, 2) & " öffnen"
+      Set myR = myR(2, 1)
+    End If
+  Next I
+  
+Hell:
+  If Err <> 0 Then Debug.Print "Fehler in InsertSheet", Err.Number, Err.Description
+  On Error Resume Next
+
+  Application.DisplayAlerts = True
+  Application.EnableEvents = True
+  Application.ScreenUpdating = True
+
+End Sub
+
+Public Function FindString(myString As String, myRange As Range) As Range
+  Set FindString = Nothing
+  If myString <= " " Then Exit Function
+  If myRange Is Nothing Then Exit Function
+  If myRange(1, 1) = myString Then ' nur für den Fall dass es in der 1. Zelle ist
+    Set FindString = myRange(1, 1)
+    Exit Function
+  End If
+  Set FindString = myRange.Find(What:=myString, LookIn:=xlFormulas, LookAt _
+      :=xlPart, SearchDirection:=xlNext, MatchCase:= _
+      False, SearchFormat:=False).Offset(0, 1)
+End Function
