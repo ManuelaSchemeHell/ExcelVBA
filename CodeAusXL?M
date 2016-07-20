@@ -1,0 +1,150 @@
+  ' Export VBA Code aus Excel-Dateien
+  ' this program opens all xlsm/xlam/xltm Files in a directory chosen by user
+  ' and writes the contained VBA-Code in a new Excel-Workbook
+  ' one sheet for every xls-file
+  ' kann sich jetzt auch selber analysieren
+  ' nur Dateien die gleich heißen aber in einem anderen Verzeichnis stehen
+  ' kann es nicht öffnen
+  ' Code von xlam-Dateien wird möglicherweise ignoriert
+  
+  Dim mySl As Object, myTitel As String, myShape As Object, nyShape As Object
+  Dim sPfad As String, cDir As String
+  Dim myR As Range
+  Dim I As Integer, J As Long, K As Long, C As Long
+  Dim appWb As Workbook, appSh As Worksheet, mySh As Worksheet
+  Dim xName As String, rekursiv As Boolean
+  Dim ShName As String, Rng As Range, R As Range
+  Dim Component As Object, Zeile, VBComp As Object
+  Dim oName As String, pName As String
+
+  Application.DisplayAlerts = False
+  Application.EnableEvents = False
+  Application.ScreenUpdating = False
+  
+  On Error GoTo Hell
+  sPfad = DateiPfad
+  
+  Set DingsBums = New Collection
+  'If TypeName(chkSubF) Is Empty Then rekursiv = False
+  rekursiv = chkSubF
+  'FindFiles sPfad, ".*xls[m]?\b", DingsBums, rekursiv
+  ' wir wählen das Suchmuster so, dass nur neue Excel-Versionen gefunden werden
+  ' Makros enthalten können xlsm, xltm und xlam
+  FindFiles sPfad, ".*xl[ats]+m\b", DingsBums, rekursiv
+ 
+  'cdir = Dir(sPfad & "*.xls")
+  'If cdir = "" Then
+  If DingsBums.Count = 0 Then
+    MsgBox "Keine Exceldatei im Verzeichnis " & sPfad & " gefunden, " & Chr(10) & Chr(13) & _
+    "Programm wird beendet"
+    GoTo Hell
+  End If
+  
+  Set nWb = Workbooks.Add
+  Set nSh = nWb.ActiveSheet
+  On Error Resume Next
+  
+  For K = 1 To DingsBums.Count
+    Ich = False
+    xName = LCase(DingsBums(K))
+    On Error Resume Next
+    If xName = LCase(ThisWorkbook.FullName) Then
+      Set appWb = ThisWorkbook
+      Debug.Print "Selbstanalyse"
+      Ich = True
+    Else
+      If Right(xName, Len(xName) - InStrRev(xName, "\", , vbTextCompare)) = _
+      LCase(ThisWorkbook.Name) Then
+        Debug.Print "Wegen Namensgleichheit kann " & DingsBums(K) & " nicht geöffnet werden"
+        GoTo TuGarNix
+      End If
+      Workbooks.Open xName, 0
+      If Err = 0 Then
+        Set appWb = ActiveWorkbook
+        If appWb Is nWb Then Ich = True ' ist zwar nicht wahr, aber trotzdem true
+        ' sonst wird am Schluss die temporäre Mappe geschlossen
+        ' und alle Ermittlungsergebnisse sind beim Teufel
+        ' wenn wir eine Vorlage oder ein AddIn öffnen
+      Else
+        Set appWb = Application.Workbooks(xName)
+        Debug.Print "Datei "; xName; " bereits geöffnet"
+        Err.Clear
+      End If
+    End If
+    Set nSh = nWb.Worksheets.Add
+    With nSh.Columns("B:B").Font
+      .Name = "Courier New"
+      .Size = 9
+    End With
+    'ThisWorkbook.Activate
+    On Error Resume Next
+    nSh.Name = Left(appWb.Name, 25) & "-" & Right(String(4, "0") & Hex(K), 5)
+    Set myR = nSh.Cells(1, 1)
+    myR.ColumnWidth = 20
+    myR(1, 1) = DingsBums(K) 'appWb.FullName
+    
+    Set myR = myR(3, 1) ' um 2 Zeilen nach unten verschieben, statt offset
+    For I = 1 To appWb.VBProject.VBComponents.Count
+      myR(1, 2).Value = appWb.VBProject.VBComponents(I).Name
+      myR(1, 1).Value = ComponentTypeToString(appWb.VBProject.VBComponents(I).Type)
+      myR.Font.Size = 12
+      myR(1, 2).Font.Size = 12
+      With appWb.VBProject.VBComponents(I).CodeModule
+        If .CountOfLines < 3 Then GoTo TuNix
+        Set myR = myR(2, 1)
+        If .CountOfDeclarationLines < 3 Then GoTo NoDecs ' keine Deklarationen
+        myR = "Declarations"
+        Set myR = myR(2, 1)
+        For J = 1 To .CountOfDeclarationLines
+          myR(J, 1) = "Line# " & J
+          myR(J, 2) = .Lines(J, 1)
+        Next J
+        Set myR = myR(J + 1, 1)
+        If .CountOfDeclarationLines + 1 > .CountOfLines Then GoTo TuNix
+NoDecs:
+        myR = "Procedures"
+        Set myR = myR(2, 1)
+        oName = .ProcOfLine(.CountOfDeclarationLines + 1, vbext_pk_Proc)
+        'Debug.Print appWb.VBProject.VBComponents(I).codemodule.Lines(1, C)
+        myR = oName
+        For J = .CountOfDeclarationLines + 1 To .CountOfLines
+          pName = .ProcOfLine(J, vbext_pk_Proc)
+          If pName <> oName Or J = .CountOfDeclarationLines + 1 Then
+            myR = pName
+            With myR.Font
+              .Size = 11
+              .Color = RGB(255, 0, 0)
+              .Bold = True
+            End With
+            myR(1, 2) = String(150, "*")
+            oName = pName
+          Else
+            myR(1, 1) = "Line# " & J
+            myR(1, 2) = appWb.VBProject.VBComponents(I).CodeModule.Lines(J, 1)
+          End If
+          Set myR = myR(2, 1)
+        Next J
+        'myR.Offset(1, 0) = appWb.VBProject.VBComponents(I).codemodule.Lines(1, C)
+        'Set myR = myR(.CountOfLines + 2, 1)
+      
+      End With
+TuNix:
+    Next I
+    
+    If Not Ich Then appWb.Close False
+TuGarNix:
+  Next K
+  
+  On Error Resume Next
+  InsertSheet nWb, "Excel", sPfad
+  MsgBox "VBA-Code Import aus dem Verzeichnis " & sPfad & _
+  "durchgeführt"
+  nWb.Worksheets(1).Activate
+  
+Hell:
+  If Err <> 0 Then Debug.Print "Fehler in cmdXcl", Err.Number, Err.Description
+  On Error Resume Next
+
+  Application.DisplayAlerts = True
+  Application.EnableEvents = True
+  Application.ScreenUpdating = True
