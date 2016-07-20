@@ -6,7 +6,7 @@
   ' nur Dateien die gleich heißen aber in einem anderen Verzeichnis stehen
   ' kann es nicht öffnen
   ' Code von xlam-Dateien wird möglicherweise ignoriert
-  
+  Public DingsBums As New Collection, myPattern As String  
   Dim mySl As Object, myTitel As String, myShape As Object, nyShape As Object
   Dim sPfad As String, cDir As String
   Dim myR As Range
