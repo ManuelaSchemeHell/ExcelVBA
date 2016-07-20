@@ -1,0 +1,90 @@
+  
+  ' Word Datei analysieren
+  
+  Dim myPath As String, myName As String, fName As String
+  Dim docWord As Object, appWord As Object, docTxt As String
+  Dim I As Long, J As Long, rekursiv As Boolean
+  Dim myR As Range, nWb As Workbook, nSh As Worksheet
+  
+  myPath = DateiPfad
+  
+  Application.DisplayAlerts = False
+  Application.EnableEvents = False
+  Application.ScreenUpdating = False
+  On Error GoTo Hell
+  
+  On Error GoTo Hell
+  Set DingsBums = New Collection
+  'If TypeName(chkSubF) Is Empty Then rekursiv = False
+  rekursiv = chkSubF
+  FindFiles myPath, "doc", DingsBums, rekursiv
+  
+  'cdir = Dir(sPfad & "*.xls")
+  'If cdir = "" Then
+  If DingsBums.Count = 0 Then
+    MsgBox "Keine Worddatei im Verzeichnis " & myPath & " gefunden, " & Chr(10) & Chr(13) & _
+    "Programm wird beendet"
+    GoTo Hell
+  End If
+   
+  Set appWord = CreateObject("Word.Application")
+  
+  Set nWb = Workbooks.Add
+  Set nSh = nWb.ActiveSheet
+  Set myR = nSh.Cells(1, 1)
+  
+  For J = 1 To DingsBums.Count
+    appWord.Documents.Open DingsBums(J)
+    Set docWord = appWord.ActiveDocument
+    Set myR = nSh.Cells(1, 1)
+    If myR > " " Then
+      Set nSh = nWb.Worksheets.Add
+    End If
+    Set myR = nSh.Cells(1, 1)
+    fName = DingsBums(J)
+    myName = Right(fName, Len(fName) - InStrRev(fName, "\", , vbTextCompare))
+    myR = fName
+    On Error Resume Next
+    nSh.Name = Mid(myName, 1, 30)
+    If Err <> 0 Then
+      Err.Clear
+      For I = 30 To 2 Step -1
+        nSh.Name = Mid(myName, 1, I)
+        If Err = 0 Then Exit For
+        Err.Clear
+      Next I
+    End If
+
+    Set myR = myR.Offset(2, 0)
+    myR = "Anzahl der Absätze: " & docWord.paragraphs.Count
+    myR.Offset(1, 0) = "Absatz"
+    myR.Offset(1, 1) = "Text"
+    Set myR = myR.Offset(1, 0)
+    
+    ' Analyse des Inhalts des Word Dokuments
+    ' wir schreiben alle Texte in eine Zeile
+    For I = 1 To docWord.paragraphs.Count
+      docTxt = docWord.Range(Start:=docWord.paragraphs(I).Range.Start, _
+                               End:=docWord.paragraphs(I).Range.End)
+      'If InStr(LCase(docTxt), "date") > 0 Then Exit For ' in diesem Absatz befindet sich das Datum
+      myR = I
+      myR.Offset(0, 1) = "'" & docTxt
+      Set myR = myR.Offset(1, 0)
+    Next I
+    docWord.Close
+    Set docWord = Nothing
+  Next J
+  InsertSheet nWb, "WinWord", myPath
+  MsgBox "Analyse der Worddateien im Verzeichnis " & myPath & _
+  "durchgeführt"
+  nWb.Worksheets(1).Activate
+  
+Hell:
+  If Err <> 0 Then Debug.Print "Fehler in cmdWord", Err.Number, Err.Description
+  On Error Resume Next
+  Set docWord = Nothing
+  appWord.Quit
+  Set appWord = Nothing
+  Application.DisplayAlerts = True
+  Application.EnableEvents = True
+  Application.ScreenUpdating = True
