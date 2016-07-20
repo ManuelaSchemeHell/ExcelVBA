@@ -15,9 +15,30 @@
     If Rng > " " Then appName = Rng
   End If
   
+  Application.DisplayAlerts = False
+  Application.EnableEvents = False
+  Application.ScreenUpdating = False
+  
   If Dir(appName) = "" Then
     MsgBox "Datenbank " & appName & " existiert nicht, Programm wird beendet"
-    End
+    GoTo Hell
+  End If
+  
+  Set appAcc = Nothing
+  Set appAcc = CreateObject("Access.Application")
+  appAcc.OpenCurrentDatabase appName
+  If appAcc Is Nothing Then
+    MsgBox "Datenbank " & appName & " konnte nicht geöffnet werden, Programm wird beendet"
+    GoTo Hell
+  End If
+  Set AccDB = appAcc.CurrentProject
+  appAcc.Properties("AllowBypassKey").Value = True
+  
+  Set AccData = appAcc.CurrentData
+  cProject = appAcc.VBE.VBProjects.Count
+  If cProject = 0 Then
+    MsgBox "Datenbank enthält keinen Code oder ist leer, Programm wird beendet"
+    GoTo Hell
   End If
   
   Set nWb = Workbooks.Add
@@ -27,18 +48,7 @@
   
   Rng = appName
   Set Rng = Rng(3, 1)
-  Set appAcc = Nothing
-  Set appAcc = CreateObject("Access.Application")
-  appAcc.OpenCurrentDatabase appName
-  If appAcc Is Nothing Then
-    MsgBox "Datenbank " & appName & " konnte nicht geöffnet werden, Programm wird beendet"
-    End
-  End If
-  Set AccDB = appAcc.CurrentProject
-  appAcc.Properties("AllowBypassKey").Value = True
   
-  Set AccData = appAcc.CurrentData
-  cProject = appAcc.VBE.VBProjects.Count
   For I = 1 To cProject
     ' alle vorhandenen Codeteile
     ' z.B. für Forms oder Reports
