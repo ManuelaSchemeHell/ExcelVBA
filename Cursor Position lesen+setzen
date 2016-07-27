@@ -36,13 +36,6 @@ Public udtPoint As POINTAPI
 Public intClicks As Integer
 Public intCoordinates(1 To 2, 1 To 2) As Integer
 
-Public Declare Sub mouse_event Lib "user32.dll" ( _
-    ByVal dwFlags As Long, _
-    ByVal dx As Long, _
-    ByVal dy As Long, _
-    ByVal dwdata As Long, _
-    ByVal dwExtraInfo As Long)
-
 Sub CurosrXY_Pixels()
      
     Dim lngStatus As Long
@@ -53,6 +46,76 @@ Sub CurosrXY_Pixels()
      
 End Sub
 
+Sub GetShapeProperties()
+
+    Dim sShapes As Shape, lLoop As Long, I As Long, cW As Long
+    Dim wsStart As Worksheet, WsNew As Worksheet, Rng As Range
+    Dim lngStatus As Long
+    Dim typWhere As POINTAPI
+
+    ''''''''''''''''''''''''''''''''''''''''''''''''
+    ''''''''''LIST PROPERTIES OF SHAPES'''''''''''''
+    ''''''''''Dave Hawley www.ozgrid.com''''''''''''
+    ''''''''''''''''''''''''''''''''''''''''''''''''
+
+    Set wsStart = ActiveSheet
+    Set WsNew = Workbooks.Add.ActiveSheet
+    'Add headings for our lists. Expand as needed
+
+    WsNew.Range("A1:H1") = _
+     Array("Shape Name", "Shape Type", "Height", "Width", "Left", "Top", _
+     "Right", "Bottom")
+
+    'Loop through all shapes on active sheet
+
+    For Each sShapes In wsStart.Shapes
+
+        'Increment Variable lLoop for row numbers
+
+        lLoop = lLoop + 1
+
+        With sShapes
+
+            'Add shape properties
+
+            WsNew.Cells(lLoop + 1, 1) = .Name
+            WsNew.Cells(lLoop + 1, 2) = .OLEFormat.Object.Name
+            WsNew.Cells(lLoop + 1, 3) = .Height
+            WsNew.Cells(lLoop + 1, 4) = .Width
+            WsNew.Cells(lLoop + 1, 5) = .Left
+            WsNew.Cells(lLoop + 1, 6) = .Top
+            WsNew.Cells(lLoop + 1, 7) = .Width + .Left
+            WsNew.Cells(lLoop + 1, 8) = .Top + .Height
+           'Follow the same pattern for more
+
+        End With
+  
+    Next sShapes
+    lLoop = lLoop + 2
+    Set Rng = WsNew.Cells(lLoop, 1)
+    cW = Application.Windows.Count
+    Rng = "Anzahl der Fenster: " & cW
+    Set Rng = Rng(2, 1)
+    WsNew.Range(Rng(1, 1), Rng(1, 8)) = _
+    Array("Window Zahl", "Window Top", "Left", "UsableHeight", "UsableWidth", "Top", _
+    "", "")
+    Set Rng = Rng(2, 1)
+    For I = 1 To cW
+      Rng = "Fenster # " & I
+      Rng(1, 2) = Application.Windows(I).Top
+      Rng(1, 3) = Application.Windows(I).Left
+      Rng(1, 4) = Application.Windows(I).UsableHeight
+      Rng(1, 5) = Application.Windows(I).UsableWidth
+      Set Rng = Rng(2, 1)
+    Next I
+    'AutoFit Columns.
+    lngStatus = GetCursorPos(typWhere)
+    Rng(2, 1) = "Mausposition"
+    Rng(2, 2) = typWhere.X
+    Rng(2, 3) = typWhere.Y
+    WsNew.Columns.AutoFit
+
+End Sub
 Sub SingleClick()
   SetCursorPos 100, 100 'x and y position
   mouse_event MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0
@@ -69,14 +132,14 @@ Sub DoubleClick()
 End Sub
 
 Sub RightClick()
-  Right Click
+  'Right Click
   SetCursorPos 200, 200 'x and y position
   mouse_event MOUSEEVENTF_RIGHTDOWN, 0, 0, 0, 0
   mouse_event MOUSEEVENTF_RIGHTUP, 0, 0, 0, 0
 End Sub
 
 Sub Cursor_bewegen_nach()
-  Dim X As Long, Y As Long, n As Long, i As Byte
+  Dim X As Long, Y As Long, n As Long, I As Byte
   
   X = 100
   Y = 100
