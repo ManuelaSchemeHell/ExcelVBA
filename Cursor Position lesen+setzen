@@ -1,0 +1,119 @@
+Option Explicit
+Public Declare Function GetCursorPos Lib "user32" (lpPoint As POINTAPI) As Long
+Public Declare Function SetCursorPos Lib "user32" (ByVal X As Long, ByVal Y As Long) As Long
+
+Public Declare Sub mouse_event Lib "user32" (ByVal dwFlags As Long, ByVal dx As Long, _
+  ByVal dy As Long, ByVal cButtons As Long, ByVal dwExtraInfo As Long)
+Public Declare Function FindWindow Lib "user32.dll" Alias "FindWindowA" ( _
+    ByVal lpClassName As String, _
+    ByVal lpWindowName As String) As Long
+Public Declare Function SetTimer Lib "user32.dll" ( _
+    ByVal hWnd As Long, _
+    ByVal nIDEvent As Long, _
+    ByVal uElapse As Long, _
+    ByVal lpTimerFunc As Long) As Long
+Public Declare Function KillTimer Lib "user32.dll" ( _
+    ByVal hWnd As Long, _
+    ByVal nIDEvent As Long) As Long
+Public Declare Function GetAsyncKeyState Lib "user32.dll" ( _
+    ByVal vKey As Long) As Integer
+Public Declare Function ScreenToClient Lib "user32" (ByVal hWnd As Long, _
+    lpPoint As POINTAPI) As Long
+    Private Type POINTAPI
+    X As Long
+    Y As Long
+End Type
+
+Public Const MOUSEEVENTF_LEFTDOWN = &H2
+Public Const MOUSEEVENTF_LEFTUP = &H4
+Public Const MOUSEEVENTF_RIGHTDOWN As Long = &H8
+Public Const MOUSEEVENTF_RIGHTUP As Long = &H10
+
+Public Const GC_CLASSNAMEMSWORD = "OpusApp"
+Public Const VK_LBUTTON = &H1
+
+Public udtPoint As POINTAPI
+Public intClicks As Integer
+Public intCoordinates(1 To 2, 1 To 2) As Integer
+
+Public Declare Sub mouse_event Lib "user32.dll" ( _
+    ByVal dwFlags As Long, _
+    ByVal dx As Long, _
+    ByVal dy As Long, _
+    ByVal dwdata As Long, _
+    ByVal dwExtraInfo As Long)
+
+Sub CurosrXY_Pixels()
+     
+    Dim lngStatus As Long
+    Dim typWhere As POINTAPI
+     
+    lngStatus = GetCursorPos(typWhere)
+    MsgBox "x: " & typWhere.X & Chr(13) & "y: " & typWhere.Y, vbInformation, "Pixels"
+     
+End Sub
+
+Sub SingleClick()
+  SetCursorPos 100, 100 'x and y position
+  mouse_event MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0
+  mouse_event MOUSEEVENTF_LEFTUP, 0, 0, 0, 0
+End Sub
+
+Sub DoubleClick()
+  'Double click as a quick series of two clicks
+  SetCursorPos 100, 100 'x and y position
+  mouse_event MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0
+  mouse_event MOUSEEVENTF_LEFTUP, 0, 0, 0, 0
+  mouse_event MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0
+  mouse_event MOUSEEVENTF_LEFTUP, 0, 0, 0, 0
+End Sub
+
+Sub RightClick()
+  Right Click
+  SetCursorPos 200, 200 'x and y position
+  mouse_event MOUSEEVENTF_RIGHTDOWN, 0, 0, 0, 0
+  mouse_event MOUSEEVENTF_RIGHTUP, 0, 0, 0, 0
+End Sub
+
+Sub Cursor_bewegen_nach()
+  Dim X As Long, Y As Long, n As Long, i As Byte
+  
+  X = 100
+  Y = 100
+  n = SetCursorPos(X, Y)
+  'Application.OnTime Now + TimeValue("00:00:03"), "Aufrufa"
+End Sub
+
+Sub prcStartTimer()
+    Dim hWnd As Long
+    intClicks = 0
+    hWnd = FindWindow(GC_CLASSNAMEMSWORD, vbNullString)
+    SetTimer hWnd, 0, 10, AddressOf prcTimer
+End Sub
+
+Sub prcStopTimer()
+    Dim hWnd As Long
+    hWnd = FindWindow(GC_CLASSNAMEMSWORD, vbNullString)
+    KillTimer hWnd, 0
+End Sub
+
+Sub prcTimer(ByVal hWnd As Long, ByVal nIDEvent As Long, _
+    ByVal uElapse As Long, ByVal lpTimerFunc As Long)
+    On Error Resume Next
+    If GetAsyncKeyState(VK_LBUTTON) = -32767 Then
+        GetCursorPos udtPoint
+        intClicks = intClicks + 1
+        intCoordinates(intClicks, 1) = udtPoint.X
+        intCoordinates(intClicks, 2) = udtPoint.Y
+        If intClicks = 2 Then
+            prcStopTimer
+            MsgBox "Oben links x " & CStr(intCoordinates(1, 1)) & _
+                " y " & CStr(intCoordinates(1, 2)) & _
+                vbLf & " Unten rechts x " & CStr(intCoordinates(2, 1)) _
+                & " y " & CStr(intCoordinates(2, 2))
+        End If
+    End If
+End Sub
+
+
+
